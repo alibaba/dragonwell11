@@ -111,6 +111,12 @@ public class VM {
         return initLevel == SYSTEM_SHUTDOWN;
     }
 
+    private static boolean enableCoroutine;
+
+    public static boolean isEnableCoroutine() {
+        return enableCoroutine;
+    }
+
     // A user-settable upper limit on the maximum amount of allocatable direct
     // buffer memory.  This value may be changed during VM initialization if
     // "java" is launched with "-XX:MaxDirectMemorySize=<size>".
@@ -194,6 +200,10 @@ public class VM {
         // only main thread is running at this time, so savedProps and
         // its content will be correctly published to threads started later
         savedProps = sp;
+
+        //Set the enableCoroutine flag, This value is controlled
+        //by the vm option -XX:+EnableCoroutine
+        enableCoroutine = Boolean.valueOf((String) props.remove("com.alibaba.coroutine.enableCoroutine"));
 
         // Set the maximum amount of direct memory.  This value is controlled
         // by the vm option -XX:MaxDirectMemorySize=<size>.

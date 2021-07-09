@@ -186,6 +186,13 @@ class HandleArea: public Arena {
     debug_only(_no_handle_mark_nesting = 0);
     _prev = prev;
   }
+  // Only coroutine uses this constructor
+  HandleArea(HandleArea* prev, size_t init_size) : Arena(mtThread, init_size) {
+    assert(EnableCoroutine, "EnableCoroutine is off");
+    debug_only(_handle_mark_nesting    = 0);
+    debug_only(_no_handle_mark_nesting = 0);
+    _prev = prev;
+  }
 
   // Handle allocation
  private:
@@ -255,6 +262,7 @@ class HandleMark {
  public:
   HandleMark();                            // see handles_inline.hpp
   HandleMark(Thread* thread)                      { initialize(thread); }
+  HandleMark(Thread* thread, HandleArea* area, HandleMark* last_handle_mark);
   ~HandleMark();
 
   // Functions used by HandleMarkCleaner

@@ -59,6 +59,7 @@
 #include "prims/stackwalk.hpp"
 #include "runtime/arguments.hpp"
 #include "runtime/atomic.hpp"
+#include "runtime/globals.hpp"
 #include "runtime/handles.inline.hpp"
 #include "runtime/init.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
@@ -381,6 +382,14 @@ JVM_ENTRY(jobject, JVM_InitProperties(JNIEnv *env, jobject properties))
       jio_snprintf(as_chars, sizeof(as_chars), JULONG_FORMAT, MaxDirectMemorySize);
       PUTPROP(props, "sun.nio.MaxDirectMemorySize", as_chars);
     }
+  }
+
+  //Convert the -XX:+EnableCoroutine command line flag
+  //to the com.alibaba.coroutine.enableCoroutine property in case that
+  //the java code can determine if the coroutine feature is enabled.
+  {
+    PUTPROP(props, "com.alibaba.coroutine.enableCoroutine",
+        EnableCoroutine ? "true" : "false");
   }
 
   // JVM monitoring and management support
@@ -2850,6 +2859,24 @@ static void thread_entry(JavaThread* thread, TRAPS) {
   HandleMark hm(THREAD);
   Handle obj(THREAD, thread->threadObj());
   JavaValue result(T_VOID);
+  
+  if (EnableCoroutine && SystemDictionary::java_dyn_CoroutineSupport_klass() != NULL) {
+    InstanceKlass::cast(SystemDictionary::Class_klass())->initialize(CHECK);
+    InstanceKlass::cast(SystemDictionary::java_dyn_CoroutineSupport_klass())->initialize(CHECK);
+    JavaCalls::call_virtual(&result,
+                            obj,
+                            SystemDictionary::Thread_klass(),
+                            vmSymbols::initializeCoroutineSupport_method_name(),
+                            vmSymbols::void_method_signature(),
+                            THREAD);
+    if (THREAD->has_pending_exception()) {
+        Handle exception(THREAD, THREAD->pending_exception());
+        java_lang_Throwable::print_stack_trace(exception, tty);
+        THREAD->clear_pending_exception();
+        vm_abort(false);
+      }
+  }
+
   JavaCalls::call_virtual(&result,
                           obj,
                           SystemDictionary::Thread_klass(),

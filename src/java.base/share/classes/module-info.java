@@ -76,6 +76,7 @@
  */
 module java.base {
 
+    exports java.dyn;
     exports java.io;
     exports java.lang;
     exports java.lang.annotation;

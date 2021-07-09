@@ -1293,6 +1293,11 @@ StackFrameStream::StackFrameStream(JavaThread *thread, bool update) : _reg_map(t
   _is_done = false;
 }
 
+StackFrameStream::StackFrameStream(JavaThread *thread, frame last_frame, bool update) : _reg_map(thread, update) {
+  assert(EnableCoroutine, "EnableCoroutine is off");
+  _fr = last_frame;
+  _is_done = false;
+}
 
 #ifndef PRODUCT
 

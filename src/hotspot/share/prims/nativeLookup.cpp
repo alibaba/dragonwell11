@@ -213,6 +213,7 @@ char* NativeLookup::long_jni_name(const methodHandle& method) {
 }
 
 extern "C" {
+  void JNICALL JVM_RegisterCoroutineSupportMethods(JNIEnv* env, jclass corocls);
   void JNICALL JVM_RegisterMethodHandleMethods(JNIEnv *env, jclass unsafecls);
   void JNICALL JVM_RegisterPerfMethods(JNIEnv *env, jclass perfclass);
   void JNICALL JVM_RegisterWhiteBoxMethods(JNIEnv *env, jclass wbclass);
@@ -229,6 +230,7 @@ static JNINativeMethod lookup_special_native_methods[] = {
   { CC"Java_jdk_internal_misc_Unsafe_registerNatives",             NULL, FN_PTR(JVM_RegisterJDKInternalMiscUnsafeMethods) },
   { CC"Java_java_lang_invoke_MethodHandleNatives_registerNatives", NULL, FN_PTR(JVM_RegisterMethodHandleMethods) },
   { CC"Java_jdk_internal_perf_Perf_registerNatives",               NULL, FN_PTR(JVM_RegisterPerfMethods)         },
+  { CC"Java_java_dyn_CoroutineSupport_registerNatives",            NULL, FN_PTR(JVM_RegisterCoroutineSupportMethods)},
   { CC"Java_sun_hotspot_WhiteBox_registerNatives",                 NULL, FN_PTR(JVM_RegisterWhiteBoxMethods)     },
 #if INCLUDE_JVMCI
   { CC"Java_jdk_vm_ci_runtime_JVMCI_initializeRuntime",            NULL, FN_PTR(JVM_GetJVMCIRuntime)             },
@@ -244,6 +246,10 @@ static address lookup_special_native(const char* jni_name) {
   for (int i = 0; i < count; i++) {
     // NB: To ignore the jni prefix and jni postfix strstr is used matching.
     if (strstr(jni_name, lookup_special_native_methods[i].name) != NULL) {
+      if (!EnableCoroutine && FN_PTR(JVM_RegisterCoroutineSupportMethods) ==
+          lookup_special_native_methods[i].fnPtr) {
+        continue;
+      }
       return CAST_FROM_FN_PTR(address, lookup_special_native_methods[i].fnPtr);
     }
   }

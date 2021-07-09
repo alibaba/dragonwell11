@@ -4412,6 +4412,25 @@ void java_nio_Buffer::compute_offsets() {
   BUFFER_FIELDS_DO(FIELD_COMPUTE_OFFSET);
 }
 
+/* stack manipulation */
+
+int java_dyn_CoroutineBase::_data_offset = 0;
+
+void java_dyn_CoroutineBase::compute_offsets() {
+  Klass* k = SystemDictionary::java_dyn_CoroutineBase_klass();
+  if (k != NULL) {
+    compute_offset(_data_offset, InstanceKlass::cast(k), vmSymbols::data_name(), vmSymbols::long_signature());
+  }
+}
+
+jlong java_dyn_CoroutineBase::data(oop obj) {
+  return obj->long_field(_data_offset);
+}
+
+void java_dyn_CoroutineBase::set_data(oop obj, jlong value) {
+  obj->long_field_put(_data_offset, value);
+}
+
 #if INCLUDE_CDS
 void java_nio_Buffer::serialize_offsets(SerializeClosure* f) {
   BUFFER_FIELDS_DO(FIELD_SERIALIZE_OFFSET);
@@ -4479,6 +4498,10 @@ void JavaClasses::compute_offsets() {
 
   // generated interpreter code wants to know about the offsets we just computed:
   AbstractAssembler::update_delayed_values();
+
+  if (EnableCoroutine) {
+    java_dyn_CoroutineBase::compute_offsets();
+  }
 }
 
 #if INCLUDE_CDS
